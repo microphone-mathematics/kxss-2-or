@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -49,11 +49,11 @@ func main() {
 			return
 		}
 
-		if len(reflected) == 0 {
+		//if len(reflected) == 0 {
 			// TODO: wrap in verbose mode
 			//fmt.Printf("no params were reflected in %s\n", c.url)
-			return
-		}
+			//return
+		//}
 
 		for _, param := range reflected {
 			output <- paramCheck{c.url, param}
@@ -63,7 +63,7 @@ func main() {
 	charChecks := makePool(appendChecks, func(c paramCheck, output chan paramCheck) {
 		wasReflected, err := checkAppend(c.url, c.param, "iy3j4h234hjb23234")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s: %s", c.url, c.param, err)
+			//fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s: %s", c.url, c.param, err)
 			return
 		}
 
@@ -74,10 +74,10 @@ func main() {
 
 	done := makePool(charChecks, func(c paramCheck, output chan paramCheck) {
 		output_of_url := []string{c.url, c.param}
-		for _, char := range []string{"\"", "'", "<", ">", "$", "|", "(", ")", "`", ":", ";", "{", "}"} {
-			wasReflected, err := checkAppend(c.url, c.param, "aprefix"+char+"asuffix")
+		for _, char := range []string{"http://quas.sh"} {
+			wasReflected, err := checkAppend(c.url, c.param, "apreffix"+char+"asuffix")
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s with %s: %s", c.url, c.param, char, err)
+				//fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s with %s: %s", c.url, c.param, char, err)
 				continue
 			}
 
@@ -103,9 +103,9 @@ func checkReflected(targetURL string) ([]string, error) {
 	out := make([]string, 0)
 
 	req, err := http.NewRequest("GET", targetURL, nil)
-	if err != nil {
-		return out, err
-	}
+	//if err != nil {
+	//	return out, err
+	//}
 
 	// temporary. Needs to be an option
 	req.Header.Add("User-Agent", "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36")
@@ -114,38 +114,41 @@ func checkReflected(targetURL string) ([]string, error) {
 	if err != nil {
 		return out, err
 	}
-	if resp.Body == nil {
-		return out, err
-	}
+	//if resp.Body == nil {
+	//	return out, err
+	//}
 	defer resp.Body.Close()
 
 	// always read the full body so we can re-use the tcp connection
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return out, err
-	}
+	//b, err := ioutil.ReadAll(resp.Body)
+	//if err != nil {
+	//	return out, err
+	//}
 
 	// nope (:
-	if strings.HasPrefix(resp.Status, "3") {
-		return out, nil
-	}
+	//if strings.HasPrefix(resp.Status, "3") {
+	//	return out, nil
+	//}
 
 	// also nope
-	ct := resp.Header.Get("Content-Type")
-	if ct != "" && !strings.Contains(ct, "html") {
-		return out, nil
-	}
-
-	body := string(b)
+	//ct := resp.Header.Get("Content-Type")
+	//if ct != "" && !strings.Contains(ct, "html") {
+	//	return out, nil
+	//}
+	loc := string(resp.Header.Get("Location"))
+	//body := string(b)
+	//if body == "" {
+	//	return out, err
+	//}
 
 	u, err := url.Parse(targetURL)
 	if err != nil {
 		return out, err
 	}
-
+	//schemhost := string(u.Scheme) + "://" +  string(u.Host)
 	for key, vv := range u.Query() {
 		for _, v := range vv {
-			if !strings.Contains(body, v) {
+			if !strings.HasPrefix(loc, v) {
 				continue
 			}
 
