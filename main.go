@@ -74,7 +74,7 @@ func main() {
 
 	done := makePool(charChecks, func(c paramCheck, output chan paramCheck) {
 		output_of_url := []string{c.url, c.param}
-		for _, char := range []string{"http://quas.sh"} {
+		for _, char := range []string{"http://quas.sh", "http:/quas.sh"} {
 			wasReflected, err := checkAppend(c.url, c.param, "apreffix"+char+"asuffix")
 			if err != nil {
 				//fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s with %s: %s", c.url, c.param, char, err)
@@ -166,13 +166,13 @@ func checkAppend(targetURL, param, suffix string) (bool, error) {
 	}
 
 	qs := u.Query()
-	val := qs.Get(param)
+	//val := qs.Get(param)
 	//if val == "" {
 	//return false, nil
 	//return false, fmt.Errorf("can't append to non-existant param %s", param)
 	//}
 
-	qs.Set(param, val+suffix)
+	qs.Set(param, suffix)
 	u.RawQuery = qs.Encode()
 
 	reflected, err := checkReflected(u.String())
