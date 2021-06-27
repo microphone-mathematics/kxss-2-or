@@ -44,8 +44,9 @@ func main() {
 
 	appendChecks := makePool(initialChecks, func(c paramCheck, output chan paramCheck) {
 		reflected, err := checkReflected(c.url)
+
 		if err != nil {
-			//fmt.Fprintf(os.Stderr, "error from checkReflected: %s\n", err)
+			fmt.Fprintf(os.Stderr, "error from checkReflected: %s\n", err)
 			return
 		}
 
@@ -54,28 +55,28 @@ func main() {
 			//fmt.Printf("no params were reflected in %s\n", c.url)
 			//return
 		//}
-
 		for _, param := range reflected {
 			output <- paramCheck{c.url, param}
 		}
 	})
 
 	charChecks := makePool(appendChecks, func(c paramCheck, output chan paramCheck) {
-		wasReflected, err := checkAppend(c.url, c.param, "iy3j4h234hjb23234")
-		if err != nil {
-			//fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s: %s", c.url, c.param, err)
-			return
-		}
+		//wasReflected, err := checkAppend(c.url, c.param, "/iy3j4h234hjb23234")
+		//if err != nil {
+		//	fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s: %s", c.url, c.param, err)
+		//	return
+		//}
 
-		if wasReflected {
-			output <- paramCheck{c.url, c.param}
-		}
+		//if wasReflected {
+		//	output <- paramCheck{c.url, c.param}
+		//}
+		output <- paramCheck{c.url, c.param}
 	})
 
 	done := makePool(charChecks, func(c paramCheck, output chan paramCheck) {
 		output_of_url := []string{c.url, c.param}
-		for _, char := range []string{"http://quas.sh", "http:/quas.sh"} {
-			wasReflected, err := checkAppend(c.url, c.param, "apreffix"+char+"asuffix")
+		for _, char := range []string{"http://quas.sh/", "http:/quas.sh/"} {
+			wasReflected, err := checkAppend(c.url, c.param, char+"asuffix")
 			if err != nil {
 				//fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s with %s: %s", c.url, c.param, char, err)
 				continue
@@ -136,6 +137,69 @@ func checkReflected(targetURL string) ([]string, error) {
 	//	return out, nil
 	//}
 	loc := string(resp.Header.Get("Location"))
+	//fmt.Printf(loc)
+	//body := string(b)
+	//if body == "" {
+	//	return out, err
+	//}
+
+	u, err := url.Parse(targetURL)
+	if err != nil {
+		return out, err
+	}
+	//schemhost := string(u.Scheme) + "://" +  string(u.Host)
+	for key, vv := range u.Query() {
+		for _, v := range vv {
+			if !strings.Contains(loc, v) {
+				continue
+			}
+
+			out = append(out, key)
+		}
+	}
+
+	return out, nil
+}
+
+func checkOpenRedirect(targetURL string) ([]string, error) {
+
+	out := make([]string, 0)
+
+	req, err := http.NewRequest("GET", targetURL, nil)
+	//if err != nil {
+	//	return out, err
+	//}
+
+	// temporary. Needs to be an option
+	req.Header.Add("User-Agent", "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return out, err
+	}
+	//if resp.Body == nil {
+	//	return out, err
+	//}
+	defer resp.Body.Close()
+
+	// always read the full body so we can re-use the tcp connection
+	//b, err := ioutil.ReadAll(resp.Body)
+	//if err != nil {
+	//	return out, err
+	//}
+
+	// nope (:
+	//if strings.HasPrefix(resp.Status, "3") {
+	//	return out, nil
+	//}
+
+	// also nope
+	//ct := resp.Header.Get("Content-Type")
+	//if ct != "" && !strings.Contains(ct, "html") {
+	//	return out, nil
+	//}
+	loc := string(resp.Header.Get("Location"))
+	//fmt.Printf(loc)
 	//body := string(b)
 	//if body == "" {
 	//	return out, err
@@ -175,7 +239,7 @@ func checkAppend(targetURL, param, suffix string) (bool, error) {
 	qs.Set(param, suffix)
 	u.RawQuery = qs.Encode()
 
-	reflected, err := checkReflected(u.String())
+	reflected, err := checkOpenRedirect(u.String())
 	if err != nil {
 		return false, err
 	}
